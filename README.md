@@ -45,6 +45,15 @@ npm run dev
 前端默认监听 `http://127.0.0.1:5173/`，dev server 不会自动打开浏览器，
 需要自己访问。`/api` 由 vite 代理到后端 `http://127.0.0.1:8000`。
 
+### 测试
+
+```bash
+cd backend
+.venv/bin/python -m unittest discover -s tests -t . -v
+```
+
+备份策略与可恢复点的回归用例在 `backend/tests/test_backuprestore.py`。
+
 ## 业务模块
 
 | 模块 | 目录 | 业务对象 | 主要字段 |
@@ -62,7 +71,7 @@ npm run dev
 | 资源配置 | `resource` | 资源池 | 池编号、池名称、最大并发数 |
 | SLA监控 | `slavalidate` | SLA规则 | 规则编号、适用作业、完成截止时间 |
 | SQL模板 | `sqltpl` | 模板定义 | 模板编号、模板名称、模板类型 |
-| 数据备份 | `backuprestore` | 备份策略 | 策略编号、数据表名、备份周期 |
+| 数据备份 | `backuprestore` | 备份策略与可恢复点 | 策略编号、数据表名、备份周期、保留天数、备份存储位置、最近备份时间 |
 | 日志归档 | `logarchive` | 归档策略 | 策略编号、日志类型、保留天数 |
 | 通知渠道 | `notifychan` | 渠道配置 | 渠道编号、渠道类型、接收地址 |
 | 发布计划 | `publishplan` | 发布单 | 发布编号、发布内容、变更说明 |
@@ -73,6 +82,9 @@ npm run dev
   `backend/app/routers/<模块>.py`，业务规则在 `backend/app/services/<模块>.py`。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
+- 备份策略只有「已启用」状态可执行备份；停用后保留历史可恢复点但不再进入可执行范围。
+- 同一数据表并发备份时只保留一个生效可恢复点，其余作为历史点；策略状态、备份存储位置、
+  最近备份时间与可恢复点、运行实例结果在同一个 `store.atomic()` 事务里落库。
 
 领域：数据工程
 子方向：数仓与数据湖
